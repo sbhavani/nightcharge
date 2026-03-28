@@ -1,5 +1,9 @@
 # python-chargepoint
 
+[![CI](https://github.com/sbhavani/python-chargepoint/actions/workflows/ci.yml/badge.svg)](https://github.com/sbhavani/python-chargepoint/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://github.com/sbhavani/python-chargepoint)
+[![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)](https://github.com/sbhavani/python-chargepoint/actions/workflows/ci.yml)
+
 ChargePoint's app and web UI don't let you do one thing: **stop your charging session on a schedule**. If you want to cap your charge at 80% or stop at a specific time to avoid peak rates, you're out of luck.
 
 This project is a Python API and CLI for ChargePoint that adds the missing piece: scheduled and automated charging control.
