@@ -49,11 +49,6 @@ def _load_config(config_path: Optional[Path]) -> dict:
 # ---------------------------------------------------------------------------
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
 def async_cmd(f):
     """Decorator: run an async click command inside asyncio.run()."""
 
@@ -80,7 +75,7 @@ async def _make_client(
 
     Auth priority:
       1. Config file (profile or default) — username + coulomb_token
-      2. Environment variables — CP_USERNAME, CP_COULOMB_TOKEN, CP_SSO_JWT
+      2. Environment variables — CP_USERNAME, CP_COULOMB_TOKEN, CP_SSO_JWT, CP_PASSWORD
       3. Password prompt — falls back to interactive login
     """
     _setup_logging(debug)
@@ -89,6 +84,7 @@ async def _make_client(
     username: str = ""
     coulomb_token: str = ""
     sso_jwt: str = ""
+    password: str = ""
 
     if config_path is None:
         config_path = DEFAULT_CONFIG_PATH
@@ -104,6 +100,7 @@ async def _make_client(
     username = username or os.environ.get("CP_USERNAME", "")
     coulomb_token = coulomb_token or os.environ.get("CP_COULOMB_TOKEN", "")
     sso_jwt = sso_jwt or os.environ.get("CP_SSO_JWT", "")
+    password = os.environ.get("CP_PASSWORD", "")
 
     if not username:
         username = click.prompt("ChargePoint Username")
@@ -113,6 +110,8 @@ async def _make_client(
         if not coulomb_token:
             if sso_jwt:
                 await client.login_with_sso_session(sso_jwt)
+            elif password:
+                await client.login_with_password(password)
             else:
                 password = getpass("Password: ")
                 await client.login_with_password(password)
