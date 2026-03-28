@@ -1,185 +1,126 @@
-# ChargePoint CLI — Tesla Focus PRD
+# python-chargepoint — Roadmap
 
-## 1. Overview
+## Background
 
-**Project Name:** python-chargepoint (CLI enhancements)
-**Type:** CLI tool for ChargePoint EV charging network management
-**Core Feature:** CLI-first interface with enhanced Tesla support and streamlined workflow
-**Target Users:** Tesla owners and EV enthusiasts who use ChargePoint network; power users who prefer CLI over mobile apps
+ChargePoint's app and web UI don't let you stop a charging session on a schedule — the core reason this project exists. This document captures the current implementation status and prioritized roadmap.
 
-## 2. Motivation
+---
 
-The existing python-chargepoint library provides a full Python API but lacks a convenient config file workflow and a faster CLI stop shortcut. Many Tesla drivers use ChargePoint stations and need quick, scriptable access to:
+## Implementation Status
 
-- Stop charging sessions instantly (e.g., when done early)
-- Schedule charging to take advantage of time-of-use rates
-- Manage home charger schedules from the terminal
-- Store credentials persistently without shell environment variables
+### Done
 
-## 3. Feature List
+| Feature | Location | Notes |
+|---|---|---|
+| `chargepoint stop` | `__main__.py:stop` | Stops active session without needing session ID |
+| `chargepoint session start <device_id>` | `__main__.py:session_start` | Start on any station |
+| `chargepoint session stop <session_id>` | `__main__.py:session_stop` | Stop by session ID |
+| `chargepoint session get <session_id>` | `__main__.py:session_get` | Session details |
+| `chargepoint charger schedule` | `__main__.py:charger_schedule` | Show charger schedule |
+| `chargepoint charger set-schedule` | `__main__.py:charger_set_schedule` | Set TOU schedule |
+| `chargepoint charger disable-schedule` | `__main__.py:charger_disable_schedule` | Disable schedule |
+| All home charger commands | `charger` subgroup | list, status, tech-info, config, set-amperage, set-led, restart |
+| All station/account/vehicle commands | `__main__.py` | Pre-existing |
 
-### 3.1 Credentials Config File
+### Not Done
 
-Store credentials in `~/.config/chargepoint/credentials.toml` instead of relying on environment variables:
+| Feature | Status |
+|---|---|
+| Credentials config file | Not implemented — uses env vars only |
+| `--profile` / `--config` global flags | Not implemented |
+| Top-level `schedule` subcommand | Currently `charger schedule / set-schedule / disable-schedule` |
+| `chargepoint session last` | Not implemented |
+| `chargepoint start <device_id>` shortcut | Currently `session start` |
+| `--connector-tesla-l2` filter | API supports `connector_l2_tesla` in MapFilter but CLI flag missing |
+| `--connector-tesla-dc` filter | API supports IONNA but CLI flag missing |
+| `chargepoint station <id> --format=tesla` | Not implemented |
+
+---
+
+## Roadmap (MoSCoW)
+
+### Must Have
+
+**`chargepoint stop`** — the project's reason for existing.
+Status: ✅ Done.
+
+**Credentials config file** (`~/.config/chargepoint/credentials.toml`)
+Most users won't want to manage shell environment variables for a CLI they run from cron. A TOML config file with profile support removes friction.
 
 ```toml
 [default]
 username = "user@example.com"
-coulomb_token = "<coulomb_sess cookie>"
+coulomb_token = "<token>"
 
 [work]
-username = "work@example.com"
-coulomb_token = "<work token>"
+username = "work@corp.com"
+coulomb_token = "<token>"
 ```
 
-CLI commands accept a `--profile` flag to switch between credential sets.
+- `--profile <name>` global flag to switch between profiles
+- `--config <path>` to specify a non-default config file
+- Falls back to env vars if config file doesn't exist
+- No new dependencies (use stdlib `tomllib` on Python 3.11+)
 
-### 3.2 Quick Stop Shortcut
-
-A top-level `chargepoint stop` command that stops the **currently active** charging session without needing to look up the session ID first:
-
-```bash
-chargepoint stop
-# → Detects active session and stops it
-```
-
-Implementation: calls `get_user_charging_status()`, extracts the active `session_id`, and calls `stop()` in one shot.
-
-### 3.3 Scheduled Charging Commands
-
-New CLI commands for managing scheduled charging:
+**`chargepoint session last`**
+Often you don't know the session ID. A shortcut to show the most recent session (or all sessions sorted by start time) lets users inspect what they just did without digging through the app.
 
 ```bash
-# Show current schedule
-chargepoint schedule show <charger_id>
-
-# Set a charging schedule (TOU rate optimization)
-chargepoint schedule set <charger_id> \
-    --weekday-start 23:00 --weekday-end 07:00 \
-    --weekend-start 19:00 --weekend-end 15:00
-
-# Disable schedule
-chargepoint schedule disable <charger_id>
-```
-
-### 3.4 Tesla-Specific Enhancements
-
-Focus on connectors and workflows relevant to Tesla vehicles:
-
-- **Tesla Supercharger status**: Include Tesla-specific connector type (`connector_tesla`, `connector_l2_tesla`) in station filtering
-- **Tesla charging session tracking**: Display Tesla-specific metrics (miles/kWh efficiency, charge rate curves)
-- **Tesla-compatible connector filter**: `--connector-tesla-l2` and `--connector-tesla-dc` shortcuts for finding Tesla-compatible stations
-- **IONNA network support**: Tesla Superchargers on the IONNA network (newly opened to all EVs)
-
-### 3.5 Session Management Shortcuts
-
-```bash
-# Start charging on a specific station
-chargepoint start <device_id>
-
-# Stop current session (see 3.2)
-chargepoint stop
-
-# Show last session summary
 chargepoint session last
+# → Session: 12345678
+#   Device:  Home Flex (device 99999999)
+#   State:   stopped
+#   Energy:  42.123 kWh
+#   Miles:   +142.3 mi
+#   Cost:    $12.34 USD
 ```
 
-### 3.6 Station Lookup Shortcuts
+### Should Have
 
-```bash
-# Show nearby Tesla-compatible stations
-chargepoint nearby --tesla-l2 --available-only --ne-lat 30.40 --ne-lon -97.64 --sw-lat 30.37 --sw-lon -97.66
+**Top-level `schedule` subcommand**
 
-# Show station details with Tesla-specific info
-chargepoint station <device_id> --format=tesla
-```
+Currently: `chargepoint charger schedule <id>`
+Proposed: `chargepoint schedule show/set/disable <charger_id>`
 
-## 4. CLI Design
+A top-level `schedule` group matches how `charger` and `session` are organized and makes the command easier to discover. The charger subcommands remain as aliases for backwards compatibility.
 
-### 4.1 Command Structure
+**`chargepoint start <device_id>` shortcut**
 
-```
-chargepoint [global options] <command> [args]
+Currently: `chargepoint session start <device_id>`
+Proposed: `chargepoint start <device_id>` as a shortcut
 
-Global Options:
-  --debug              Enable debug logging
-  --json               JSON output
-  --profile <name>     Use named credential profile (default: "default")
-  --config <path>      Path to config file (default: ~/.config/chargepoint/credentials.toml)
-```
+Both forms work; the shortcut is faster for power users.
 
-### 4.2 Command Inventory
+**Tesla connector filters**
 
-| Command | Description |
-|---|---|
-| `chargepoint stop` | Stop the currently active charging session |
-| `chargepoint start <device_id>` | Start charging on a station |
-| `chargepoint session last` | Show the most recent session |
-| `chargepoint schedule show <charger_id>` | Show charger schedule |
-| `chargepoint schedule set <charger_id> [options]` | Set charger schedule |
-| `chargepoint schedule disable <charger_id>` | Disable charger schedule |
-| `chargepoint nearby [bounds]` | Find nearby stations |
-| `chargepoint station <device_id>` | Show station details |
-| `chargepoint account` | Show account info |
-| `chargepoint vehicles` | List registered vehicles |
+The `MapFilter` type already has `connector_l2_tesla` and the API supports `network_ionna` for Tesla Superchargers open to all EVs. The CLI just needs the flag additions:
 
-### 4.3 Filter Options (for `nearby`)
+| Flag | Maps to | Description |
+|---|---|---|
+| `--connector-tesla-l2` | `connector_l2_tesla=True` | Tesla Level 2 (NACS) |
+| `--connector-tesla-dc` | `network_ionna=True` + `dc_fast=True` | Tesla Supercharger (IONNA) |
 
-| Flag | Description |
-|---|---|
-| `--connector-tesla` | Tesla proprietary |
-| `--connector-tesla-l2` | Tesla Level 2 (NACS) |
-| `--connector-tesla-dc` | Tesla Supercharger (DC) |
-| `--connector-l2` | Level 2 AC |
-| `--connector-combo` | CCS combo (DC) |
-| `--dc-fast` | Any DC fast charger |
-| `--available-only` | Only available stations |
-| `--free-only` | Only free stations |
+### Could Have
 
-## 5. Config File Format
+**`chargepoint station <id> --format=tesla`**
+Display station info tailored to Tesla vehicles — show NACS compatibility, Supercharger status, IONNA network label.
 
-```toml
-# ~/.config/chargepoint/credentials.toml
+**Scheduled stop via a daemon or systemd timer template**
+Document how to pair `chargepoint stop` with system timers for:
+- Stop at a fixed time (cron: `0 23 * * * chargepoint stop`)
+- Stop when SOC reaches a target (requires polling, document a reference script)
 
-[default]
-username = "user@example.com"
-coulomb_token = "<coulomb_sess cookie>"
+### Won't Have (for now)
 
-[work]
-username = "work@company.com"
-coulomb_token = "<work coulomb_sess cookie>"
-```
+- **Web dashboard / UI** — out of scope; this is a CLI/API project
+- **SOC-based stop** — would require polling and is vehicle-specific; a reference script in the docs is the right approach
 
-The CLI reads from the default profile unless `--profile` is specified.
+---
 
-## 6. Dependencies
+## Dependencies
 
-No new runtime dependencies. Uses existing library functionality:
-
-- `aiohttp` for async HTTP
-- `pydantic` for data models
-- `click` for CLI framework
-
-## 7. File Structure
-
-```
-python-chargepoint/
-├── python_chargepoint/
-│   ├── __init__.py
-│   ├── __main__.py       # CLI entry point (augmented)
-│   └── types.py          # Data models (augmented for Tesla fields)
-├── docs/
-│   └── PRD.md            # This document
-├── README.md             # Updated to reflect CLI enhancements
-└── tests/                # Tests for new CLI commands
-```
-
-## 8. Success Criteria
-
-- [ ] `chargepoint stop` works without requiring session ID lookup
-- [ ] `~/.config/chargepoint/credentials.toml` is loaded automatically
-- [ ] `--profile` flag switches between credential sets
-- [ ] `chargepoint schedule set/show/disable` work for home chargers
-- [ ] `--connector-tesla-l2` and `--connector-tesla-dc` filters work in `nearby`
-- [ ] All existing tests pass
-- [ ] New commands have test coverage
+No new runtime dependencies. Uses existing stack:
+- `aiohttp` — async HTTP
+- `pydantic` — data models
+- `click` — CLI framework
+- `tomllib` — stdlib config parsing (Python 3.11+; `tomli` backport for 3.10)
