@@ -1,0 +1,51 @@
+name: Security
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+jobs:
+  pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - run: uv sync --all-extras
+        env:
+          UV_LINK_MODE: copy
+
+      - name: pip-audit
+        run: uv run pip-audit --strict --ignore-vuln CVE-2026-4539 --skip-editable
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: github/codeql-action/init@main
+        with:
+          languages: python
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - run: uv sync
+        env:
+          UV_LINK_MODE: copy
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@main

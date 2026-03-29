@@ -32,6 +32,9 @@ jobs:
       - name: pyright
         run: uv run pyright nightcharge/
 
+      - name: pip-audit
+        run: uv run pip-audit --strict --ignore-vuln CVE-2026-4539 --skip-editable
+
   test:
     runs-on: ubuntu-latest
     strategy:
