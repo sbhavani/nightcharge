@@ -11,42 +11,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-          enable-cache: true
+
+      - name: Install uv
+        run: pip install uv
 
       - run: uv sync --dev
 
       - name: black
-        run: .venv/bin/black --check nightcharge/ tests/
+        run: uv run black --check nightcharge/ tests/
 
       - name: flake8
-        run: .venv/bin/flake8 nightcharge/ tests/
+        run: uv run flake8 nightcharge/ tests/
 
       - name: mypy
-        run: .venv/bin/mypy nightcharge/
+        run: uv run mypy nightcharge/
 
       - name: pyright
-        run: .venv/bin/pyright nightcharge/
+        run: uv run pyright nightcharge/
 
       - name: pip-audit
-        run: .venv/bin/pip-audit --strict --ignore-vuln CVE-2026-4539 --skip-editable
+        run: uv run pip-audit --strict --ignore-vuln CVE-2026-4539 --skip-editable
 
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-          enable-cache: true
+
+      - name: Install uv
+        run: pip install uv
 
       - run: uv sync --dev
 
       - name: pytest
-        run: .venv/bin/pytest --cov=nightcharge --cov-fail-under=90
+        run: uv run pytest --cov=nightcharge --cov-fail-under=90
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
