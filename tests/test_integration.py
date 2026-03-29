@@ -19,6 +19,7 @@ To get a CP_COULOMB_TOKEN:
 Running:
     pytest tests/test_integration.py -v
 """
+
 import os
 
 import dotenv
@@ -99,7 +100,9 @@ def test_account(runner):
     """account should print name, email, and balance."""
     result = runner.invoke(cli, ["account"], catch_exceptions=False)
     if result.exit_code == 0:
-        assert any(word in result.output for word in ["Name", "Email", "Balance", "Account"])
+        assert any(
+            word in result.output for word in ["Name", "Email", "Balance", "Account"]
+        )
 
 
 def test_vehicles(runner):

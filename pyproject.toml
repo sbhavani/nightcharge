@@ -46,3 +46,6 @@ packages = ["nightcharge"]
 plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 check_untyped_defs = true
+
+[tool.black]
+target-version = ["py312"]

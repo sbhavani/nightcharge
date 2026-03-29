@@ -13,12 +13,10 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.12"
+          python-version: "3.14"
           enable-cache: true
 
       - run: uv sync --dev
-        env:
-          UV_LINK_MODE: copy
 
       - name: black
         run: uv tool run black --check nightcharge/ tests/
@@ -42,15 +40,13 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.12"
+          python-version: "3.14"
           enable-cache: true
 
       - run: uv sync --dev
-        env:
-          UV_LINK_MODE: copy
 
       - name: pytest
-        run: uv tool run pytest --cov=nightcharge --cov-fail-under=90
+        run: uv run pytest --cov=nightcharge --cov-fail-under=90
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4

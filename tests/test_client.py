@@ -984,9 +984,7 @@ async def test_login_password_403_non_json(
     assert "Failed to authenticate" in str(exc.value)
 
 
-async def test_request_403_non_json(
-    aioresponses, authenticated_client: ChargePoint
-):
+async def test_request_403_non_json(aioresponses, authenticated_client: ChargePoint):
     """_request should handle a 403 with non-JSON body gracefully (Datadome try/except)."""
     from nightcharge.global_config import ZoomBounds
 
@@ -1002,4 +1000,3 @@ async def test_request_403_non_json(
 
     # Should fall through to FORBIDDEN error (except Exception: pass is hit)
     assert "FORBIDDEN" in str(exc.value)
-
