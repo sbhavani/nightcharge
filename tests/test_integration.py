@@ -49,6 +49,13 @@ def _has_coulomb_token():
     return bool(ct or sj)
 
 
+# Skip the entire module unless real credentials are configured
+pytestmark = pytest.mark.skipif(
+    not _has_coulomb_token(),
+    reason="Integration tests require CP_COULOMB_TOKEN or CP_SSO_JWT",
+)
+
+
 @pytest.fixture(scope="module")
 def runner():
     return CliRunner()
